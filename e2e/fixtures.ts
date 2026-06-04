@@ -1,38 +1,42 @@
-/**
- * Shared Playwright fixtures for the Dog Walking App E2E suite.
- *
- * Usage in a spec:
- *   import { test, expect, hasSession } from '../fixtures';
- *
- * The `app` fixture is a Page already navigated to the app root.
- * When a session is configured (PLAYWRIGHT_SESSION_STORAGE env var or
- * storageState file present), `hasSession` is true and auth-gated tests run.
- */
 import { test as base, expect, type Page } from '@playwright/test';
-import path from 'path';
-import fs from 'fs';
 
-// ---------------------------------------------------------------------------
-// Session detection
-// ---------------------------------------------------------------------------
-const SESSION_FILE = path.resolve(__dirname, '.auth/session.json');
-export const hasSession: boolean =
-  !!process.env.PLAYWRIGHT_SESSION_STORAGE || fs.existsSync(SESSION_FILE);
+// A fixture session token for a throwaway E2E user, injected by the CI e2e job
+// (PAS_E2E_SESSION_TOKEN). It is a normal, revocable platform session — NOT a
+// bypass: the app signs in via the SDK's real OAuth-callback path below.
+const SESSION_TOKEN = process.env.E2E_SESSION_TOKEN || '';
+export const hasSession = SESSION_TOKEN.length > 0;
 
-// ---------------------------------------------------------------------------
-// Fixtures
-// ---------------------------------------------------------------------------
-type Fixtures = {
-  /** Page already navigated to the app root (base URL from playwright.config). */
-  app: Page;
-};
+// Navigate with a few retries so a just-provisioned custom domain that is still
+// warming up (Cloudflare first-deploy propagation) does not read as a failure.
+async function gotoWithRetry(page: Page, path: string) {
+  let lastErr: unknown;
+  // ~60s budget: a brand-new app's custom domain can still be warming up
+  // (Cloudflare first-deploy DNS/route propagation) for the first deploy.
+  for (let i = 0; i < 10; i++) {
+    try {
+      const res = await page.goto(path, { waitUntil: 'domcontentloaded', timeout: 20000 });
+      if (res && res.status() < 500) return;
+      lastErr = new Error('HTTP ' + (res ? res.status() : 'no response'));
+    } catch (e) {
+      lastErr = e;
+    }
+    await page.waitForTimeout(6000);
+  }
+  throw lastErr;
+}
 
-export const test = base.extend<Fixtures>({
-  app: async ({ page }, use) => {
-    await page.goto('/');
-    // Wait for the React root to be mounted — migrations complete before mount,
-    // so presence of #root > * means migrations have finished.
-    await page.waitForSelector('#root > *', { timeout: 15_000 });
+// 'app' fixture: a Page already past the sign-in wall when a fixture session is
+// configured. The SDK's auth.init() reads the session from the URL hash, calls
+// /v1/auth/me, persists the session, and clears the hash — the SAME path a real
+// GitHub/Google OAuth callback uses. Without a token, returns an un-authed page
+// (the sign-in screen) so unauthenticated smokes still run.
+export const test = base.extend<{ app: Page; pageErrors: string[] }>({
+  pageErrors: async ({}, use) => { await use([]); },
+  app: async ({ page, pageErrors }, use) => {
+    page.on('pageerror', (e) => pageErrors.push(String(e)));
+    const target = hasSession ? '/#pas_session=' + encodeURIComponent(SESSION_TOKEN) : '/';
+    await gotoWithRetry(page, target);
+    await page.waitForLoadState('networkidle').catch(() => {});
     await use(page);
   },
 });
