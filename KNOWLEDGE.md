@@ -83,3 +83,5 @@ Guests (unauthenticated owners) **can browse** — sign-in is only required to c
 - All permission gating uses `app.roles` (built-in RBAC) — never a hand-rolled roles table.
 - Listings browsing is **public** (no auth required to read).
 - Walker profile photos stored via `app.storage.uploadPublic` and served via `app.storage.publicUrl`.
+
+_Last reviewed: 2026-06-04._
