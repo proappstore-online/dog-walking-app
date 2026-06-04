@@ -1,10 +1,10 @@
 import React from 'react';
-import type { Listing } from '../types/listing';
+import type { ListingWithServices } from '../types/listing';
 import ListingCard from './ListingCard';
 import SkeletonCard from './SkeletonCard';
 
 interface Props {
-  listings: Listing[];
+  listings: ListingWithServices[];
   loading: boolean;
   onSignIn: () => void;
   isEmpty: boolean;

@@ -1,13 +1,13 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { app } from '../lib/app';
-import type { Listing } from '../types/listing';
+import type { Listing, ListingService, ListingWithServices } from '../types/listing';
 import SearchFilterBar from '../components/SearchFilterBar';
 import ListingGrid from '../components/ListingGrid';
 
 const PAGE_SIZE = 20;
 
 export default function DirectoryPage(): React.ReactElement {
-  const [listings, setListings] = useState<Listing[]>([]);
+  const [listings, setListings] = useState<ListingWithServices[]>([]);
   const [cities, setCities] = useState<string[]>([]);
   const [selectedCity, setSelectedCity] = useState<string>('');
   const [searchText, setSearchText] = useState<string>('');
@@ -43,7 +43,7 @@ export default function DirectoryPage(): React.ReactElement {
         const citiesSql =
           'SELECT DISTINCT city FROM listings WHERE is_active = 1 ORDER BY city ASC';
 
-        // Fire both queries in parallel; city list only fetched on first page
+        // Fire listings + cities queries in parallel (cities only on first page)
         const listingsPromise = app.db.query<Listing>(listingsSql, listingsParams);
         const citiesPromise =
           pageIndex === 0
@@ -59,12 +59,37 @@ export default function DirectoryPage(): React.ReactElement {
         if (fetchId !== fetchIdRef.current) return;
 
         const newRows = listingsResult.rows;
+
+        // Fetch services for all returned listings in one query (if any)
+        let servicesMap: Record<string, ListingService['service'][]> = {};
+        if (newRows.length > 0) {
+          const ids = newRows.map((r) => r.id);
+          const placeholders = ids.map(() => '?').join(', ');
+          const servicesResult = await app.db.query<{ listing_id: string; service: ListingService['service'] }>(
+            `SELECT listing_id, service FROM listing_services WHERE listing_id IN (${placeholders})`,
+            ids
+          );
+          // Discard if superseded
+          if (fetchId !== fetchIdRef.current) return;
+          for (const row of servicesResult.rows) {
+            if (!servicesMap[row.listing_id]) {
+              servicesMap[row.listing_id] = [];
+            }
+            servicesMap[row.listing_id].push(row.service);
+          }
+        }
+
+        const withServices: ListingWithServices[] = newRows.map((r) => ({
+          ...r,
+          services: servicesMap[r.id] ?? [],
+        }));
+
         setHasMore(newRows.length === PAGE_SIZE);
 
         if (append) {
-          setListings((prev) => [...prev, ...newRows]);
+          setListings((prev) => [...prev, ...withServices]);
         } else {
-          setListings(newRows);
+          setListings(withServices);
         }
 
         if (citiesResult !== null) {
