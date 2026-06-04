@@ -1,0 +1,117 @@
+{
+  "tools": [
+    {
+      "name": "list_listings",
+      "description": "Return a paginated list of active walker listings, optionally filtered by city. Excludes contact_value to prevent bulk scraping.",
+      "operation": "query",
+      "sql": "SELECT id, user_id, display_name, suburb, city, rate_per_hour, photo_key, is_active, created_at FROM listings WHERE is_active = 1 ORDER BY created_at DESC LIMIT :limit OFFSET :offset",
+      "params": {
+        "limit": { "type": "integer", "default": 20, "max": 100, "optional": true },
+        "offset": { "type": "integer", "default": 0, "optional": true }
+      },
+      "requires_auth": false
+    },
+    {
+      "name": "list_listings_by_city",
+      "description": "Return a paginated list of active walker listings filtered by city. Excludes contact_value.",
+      "operation": "query",
+      "sql": "SELECT id, user_id, display_name, suburb, city, rate_per_hour, photo_key, is_active, created_at FROM listings WHERE is_active = 1 AND city = :city ORDER BY created_at DESC LIMIT :limit OFFSET :offset",
+      "params": {
+        "city": { "type": "string" },
+        "limit": { "type": "integer", "default": 20, "max": 100, "optional": true },
+        "offset": { "type": "integer", "default": 0, "optional": true }
+      },
+      "requires_auth": false
+    },
+    {
+      "name": "get_listing",
+      "description": "Return a single active listing by ID including contact details.",
+      "operation": "query",
+      "sql": "SELECT * FROM listings WHERE id = :id AND is_active = 1",
+      "params": {
+        "id": { "type": "string" }
+      },
+      "requires_auth": false
+    },
+    {
+      "name": "get_listing_services",
+      "description": "Return the service types offered by a specific listing.",
+      "operation": "query",
+      "sql": "SELECT * FROM listing_services WHERE listing_id = :listing_id",
+      "params": {
+        "listing_id": { "type": "string" }
+      },
+      "requires_auth": false
+    },
+    {
+      "name": "get_my_listing",
+      "description": "Return the calling user's own listing (active or inactive, including contact details).",
+      "operation": "query",
+      "sql": "SELECT * FROM listings WHERE user_id = :__user_id",
+      "params": {},
+      "requires_auth": true
+    },
+    {
+      "name": "create_listing",
+      "description": "Create a new walker listing for the calling user.",
+      "operation": "execute",
+      "sql": "INSERT INTO listings (id, user_id, display_name, bio, suburb, city, rate_per_hour, contact_type, contact_value, is_active, created_at, updated_at) VALUES (:__uuid, :__user_id, :display_name, :bio, :suburb, :city, :rate_per_hour, :contact_type, :contact_value, 1, :__now, :__now)",
+      "params": {
+        "display_name": { "type": "string" },
+        "bio": { "type": "string" },
+        "suburb": { "type": "string" },
+        "city": { "type": "string" },
+        "rate_per_hour": { "type": "integer" },
+        "contact_type": { "type": "string" },
+        "contact_value": { "type": "string" }
+      },
+      "requires_auth": true
+    },
+    {
+      "name": "create_listing_service",
+      "description": "Add a service type to a listing owned by the calling user.",
+      "operation": "execute",
+      "sql": "INSERT INTO listing_services (id, listing_id, service) VALUES (:__uuid, :listing_id, :service)",
+      "params": {
+        "listing_id": { "type": "string" },
+        "service": { "type": "string" }
+      },
+      "requires_auth": true
+    },
+    {
+      "name": "update_listing",
+      "description": "Update fields on the calling user's own listing.",
+      "operation": "execute",
+      "sql": "UPDATE listings SET display_name = :display_name, bio = :bio, suburb = :suburb, city = :city, rate_per_hour = :rate_per_hour, contact_type = :contact_type, contact_value = :contact_value, updated_at = :__now WHERE id = :id AND user_id = :__user_id",
+      "params": {
+        "id": { "type": "string" },
+        "display_name": { "type": "string" },
+        "bio": { "type": "string" },
+        "suburb": { "type": "string" },
+        "city": { "type": "string" },
+        "rate_per_hour": { "type": "integer" },
+        "contact_type": { "type": "string" },
+        "contact_value": { "type": "string" }
+      },
+      "requires_auth": true
+    },
+    {
+      "name": "deactivate_listing",
+      "description": "Soft-delete the calling user's own listing (sets is_active = 0).",
+      "operation": "execute",
+      "sql": "UPDATE listings SET is_active = 0, updated_at = :__now WHERE id = :id AND user_id = :__user_id",
+      "params": {
+        "id": { "type": "string" }
+      },
+      "requires_auth": true
+    },
+    {
+      "name": "list_cities",
+      "description": "Return distinct cities that have at least one active listing (for filter dropdowns).",
+      "operation": "query",
+      "sql": "SELECT DISTINCT city FROM listings WHERE is_active = 1 ORDER BY city ASC",
+      "params": {},
+      "requires_auth": false
+    }
+  ]
+}
