@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { app } from '../lib/app';
-import type { Listing, ListingService, ListingWithServices } from '../types/listing';
+import type { Listing, ListingService, ListingWithServices } from '../types';
 import SearchFilterBar from '../components/SearchFilterBar';
 import ListingGrid from '../components/ListingGrid';
 
@@ -43,7 +43,7 @@ export default function DirectoryPage(): React.ReactElement {
         const citiesSql =
           'SELECT DISTINCT city FROM listings WHERE is_active = 1 ORDER BY city ASC';
 
-        // Fire listings + cities queries in parallel (cities only on first page)
+        // Fire both queries in parallel; city list only fetched on first page
         const listingsPromise = app.db.query<Listing>(listingsSql, listingsParams);
         const citiesPromise =
           pageIndex === 0
@@ -58,33 +58,35 @@ export default function DirectoryPage(): React.ReactElement {
         // Discard stale responses
         if (fetchId !== fetchIdRef.current) return;
 
-        const newRows = listingsResult.rows;
+        const listingRows = listingsResult.rows;
+        setHasMore(listingRows.length === PAGE_SIZE);
 
-        // Fetch services for all returned listings in one query (if any)
-        let servicesMap: Record<string, ListingService['service'][]> = {};
-        if (newRows.length > 0) {
-          const ids = newRows.map((r) => r.id);
+        // Fetch services for this page of listings
+        let withServices: ListingWithServices[];
+        if (listingRows.length > 0) {
+          const ids = listingRows.map((l) => l.id);
           const placeholders = ids.map(() => '?').join(', ');
           const servicesResult = await app.db.query<{ listing_id: string; service: ListingService['service'] }>(
             `SELECT listing_id, service FROM listing_services WHERE listing_id IN (${placeholders})`,
             ids
           );
-          // Discard if superseded
+
           if (fetchId !== fetchIdRef.current) return;
+
+          const servicesByListing = new Map<string, ListingService['service'][]>();
           for (const row of servicesResult.rows) {
-            if (!servicesMap[row.listing_id]) {
-              servicesMap[row.listing_id] = [];
-            }
-            servicesMap[row.listing_id].push(row.service);
+            const existing = servicesByListing.get(row.listing_id) ?? [];
+            existing.push(row.service);
+            servicesByListing.set(row.listing_id, existing);
           }
+
+          withServices = listingRows.map((l) => ({
+            ...l,
+            services: servicesByListing.get(l.id) ?? [],
+          }));
+        } else {
+          withServices = [];
         }
-
-        const withServices: ListingWithServices[] = newRows.map((r) => ({
-          ...r,
-          services: servicesMap[r.id] ?? [],
-        }));
-
-        setHasMore(newRows.length === PAGE_SIZE);
 
         if (append) {
           setListings((prev) => [...prev, ...withServices]);

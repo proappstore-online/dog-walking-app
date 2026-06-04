@@ -1,5 +1,5 @@
 import React from 'react';
-import type { ListingWithServices } from '../types/listing';
+import type { ListingWithServices } from '../types';
 import ListingCard from './ListingCard';
 import SkeletonCard from './SkeletonCard';
 

@@ -15,13 +15,3 @@ export interface Listing {
   created_at: string;
   updated_at: string;
 }
-
-export interface ListingService {
-  id: string;
-  listing_id: string;
-  service: 'solo_walk' | 'group_walk' | 'drop_in_visit' | 'overnight_stay' | 'puppy_care';
-}
-
-export interface ListingWithServices extends Listing {
-  services: ListingService['service'][];
-}
