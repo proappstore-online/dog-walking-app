@@ -8,6 +8,25 @@
 
 A public directory where **dog walkers** can create a profile advertising their services (rates, service area, bio, photo) and expose contact details so **dog owners** can reach them directly. Think of it as a lightweight, searchable notice-board: walkers self-advertise, owners browse and get in touch.
 
+## Market position
+
+The app sits in a deliberate gap in the market — see [`docs/competitive-analysis.md`](docs/competitive-analysis.md) for the full breakdown.
+
+| Competitor type | Examples | Problem |
+|----------------|----------|---------|
+| Managed marketplaces | Rover, Wag, Pawshake | 15–40 % commission; platform controls contact |
+| Job-board hybrids | Care.com | Double paywall; not dog-specific |
+| Unstructured social | Facebook Groups, Gumtree | Free but no permanent profiles, no search |
+| **This app** | Dog Walking App | **Free, permanent, searchable — walkers own the relationship** |
+
+**The gap:** zero-cost, zero-commission, direct-contact, permanent dog-walker directory — globally accessible. No existing product occupies this exact space.
+
+**Core differentiators (never erode these):**
+- Free to list, free to browse, zero commission — forever
+- Walker's real contact info is on the profile; no in-platform messaging middleman
+- Permanent profiles (no expiry) with structured data (rates, services, area)
+- Works for any city worldwide — not geo-gated
+
 ## Users
 
 | Persona | Description |
@@ -43,6 +62,7 @@ Guests (unauthenticated owners) **can browse** — sign-in is only required to c
 |------|----------|
 | `docs/data-model.md` | DB tables, columns, types, migrations |
 | `docs/sdk-plan.md` | Exact SDK primitives + signatures used |
+| `docs/competitive-analysis.md` | Competitor breakdown, feature matrix, strategic implications |
 | `docs/mcp-tools.md` | MCP tool surface for external AI access |
 | `docs/design.md` | UX layout, design system, dark mode |
 | `docs/quality.md` | Quality bar: tsc, lint, a11y, mobile |
