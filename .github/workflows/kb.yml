@@ -45,18 +45,17 @@ jobs:
           if [ -d docs ]; then cp -r docs/. kb-src/; fi
           printf 'site_name: %s — Knowledge Base\ndocs_dir: kb-src\n' "$APP" > mkdocs.yml
           zensical build
-      - name: Publish to R2 (pas-kb/<app>/)
+      - name: Publish to kb-host (R2 via Worker binding)
         if: steps.gate.outputs.go == '1'
         env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: c1089bfcc43c1c6c2aa89e584e86f0bc
+          INTERNAL_TOKEN: ${{ secrets.INTERNAL_TOKEN }}
           APP: ${{ github.event.repository.name }}
         run: |
-          npm install -g wrangler@4 >/dev/null 2>&1
+          if [ -z "$INTERNAL_TOKEN" ]; then echo "INTERNAL_TOKEN missing — cannot publish KB"; exit 1; fi
           out=site
           [ -d "$out" ] || out=public
           cd "$out"
           find . -type f | while read -r f; do
-            wrangler r2 object put "pas-kb/$APP/${f#./}" --file="$f" --remote >/dev/null
+            curl -fsS -X PUT "https://kb.proappstore.online/_ingest/$APP/${f#./}" -H "x-internal-token: $INTERNAL_TOKEN" --data-binary "@$f" >/dev/null
           done
           echo "Knowledge Base published → https://kb.proappstore.online/$APP/"

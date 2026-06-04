@@ -1,3 +1,5 @@
+> **Last reviewed: 2026-06-04**
+
 # Dog Walking App — Knowledge Base
 
 > **Ground truth for BA, Dev, and QA.** Do not build from memory; read this first.
