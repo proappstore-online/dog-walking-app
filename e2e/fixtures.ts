@@ -30,8 +30,7 @@ type Fixtures = {
 export const test = base.extend<Fixtures>({
   app: async ({ page }, use) => {
     await page.goto('/');
-    // Wait for the React root to be mounted — migrations complete before mount,
-    // so presence of #root > * means migrations have finished.
+    // Wait for React to mount before handing the page to a test.
     await page.waitForSelector('#root > *', { timeout: 15_000 });
     await use(page);
   },

@@ -234,8 +234,7 @@ test('AC4: walker display name is rendered with correct typography classes', asy
   const nameEl = page
     .locator('a[href^="/walkers/"]')
     .first()
-    .locator('h3, p')
-    .filter({ hasClass: /font-semibold/ })
+    .locator('h3.font-semibold, p.font-semibold')
     .first();
 
   await expect(nameEl).toHaveClass(/font-semibold/);
@@ -611,7 +610,7 @@ test('AC8: dark mode class variants are present on card elements', async ({ page
   await expect(card).toHaveClass(/dark:bg-gray-800/);
 
   // Walker name element (h3 or p with font-semibold)
-  const nameEl = card.locator('h3, p').filter({ hasClass: /font-semibold/ }).first();
+  const nameEl = card.locator('h3.font-semibold, p.font-semibold').first();
   await expect(nameEl).toHaveClass(/dark:text-gray-50/);
 
   // Location element
